@@ -15,7 +15,7 @@ public class A2AClientExample {
     
     public static void main(String[] args) {
         // Create client
-        A2AClient client = new A2AClient("http://localhost:8080");
+        A2AClient client = new A2AClient("http://localhost:28080");
         
         try {
             // Example 1: Get agent card
@@ -25,6 +25,7 @@ public class A2AClientExample {
             System.out.println("Description: " + agentCard.description());
             System.out.println("Version: " + agentCard.version());
             System.out.println("Skills: " + agentCard.skills());
+            System.out.println("URL: " + agentCard.url());
             System.out.println();
             
             // Example 2: Translate French to Chinese

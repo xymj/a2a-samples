@@ -42,7 +42,7 @@ public class A2AServerConfiguration {
         );
 
         AgentCapabilities capabilities = new AgentCapabilities(
-            true,  // streaming
+            false,  // streaming
             true,  // pushNotifications
             true   // stateTransitionHistory
         );
@@ -69,7 +69,7 @@ public class A2AServerConfiguration {
         return new AgentCard(
             "AI Translation Bot",
             "Professional AI translation service powered by advanced language models. Supports translation between multiple languages with high accuracy and context awareness.",
-            "http://localhost:8080/a2a",
+            "http://localhost:28080/a2a",
             provider,
             "1.0.0",
             "http://localhost:8080/docs",

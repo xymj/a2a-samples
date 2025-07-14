@@ -24,6 +24,9 @@ from jinja2 import Template
 
 from no_llm_framework.client.constant import GOOGLE_API_KEY
 
+import os
+from dashscope import Generation
+
 
 dir_path = Path(__file__).parent
 
@@ -46,12 +49,22 @@ def stream_llm(prompt: str) -> Generator[str]:
     Returns:
         Generator[str, None, None]: A generator of the LLM response.
     """
-    client = genai.Client(api_key=GOOGLE_API_KEY)
-    for chunk in client.models.generate_content_stream(
-        model='gemini-1.5-flash',
-        contents=prompt,
-    ):
-        yield chunk.text
+    # client = genai.Client(api_key=GOOGLE_API_KEY)
+    # for chunk in client.models.generate_content_stream(
+    #     model='gemini-1.5-flash',
+    #     contents=prompt,
+    # ):
+    #     yield chunk.text
+    messages = [
+        # {'role': 'system',
+        #  'content': prompt},
+        {'role': 'user', 'content': prompt}
+    ]
+    responses = Generation.call(
+        api_key=os.environ['AI_DASHSCOPE_API_KEY'], model=Generation.Models.qwen_plus, messages=messages,
+        result_format="message", stream=True, incremental_output=True)
+    for chunk in responses:
+        yield chunk.output.choices[0].message.content
 
 
 class Agent:
@@ -124,17 +137,21 @@ class Agent:
         Returns:
             Generator[str, None]: The LLM's response as a generator of strings.
         """  # noqa: E501
+        # 已调用过的agent prompt构建
         if called_agents:
             call_agent_prompt = agent_answer_template.render(
                 called_agents=called_agents
             )
         else:
             call_agent_prompt = ''
+
+        # 调用模型生成调用下游agent结果的prompt构建
         prompt = decide_template.render(
             question=question,
             agent_prompt=agents_prompt,
             call_agent_prompt=call_agent_prompt,
         )
+        # 调用模型选择要调用的agent
         return self.call_llm(prompt)
 
     def extract_agents(self, response: str) -> list[dict]:
@@ -182,6 +199,8 @@ class Agent:
                     message = chunk.root.result.status.message
                     if message:
                         yield message.parts[0].root.text
+                else:
+                    print(f'chunk.root: f{chunk.root}')
 
     async def stream(self, question: str):
         """Stream the process of answering a question, possibly involving multiple agents.
@@ -194,34 +213,41 @@ class Agent:
         """  # noqa: E501
         agent_answers: list[dict] = []
         for _ in range(3):
+            # 客户端获取所有可调用agent
             agents_registry, agent_prompt = await self.get_agents()
             response = ''
+            # 客户端调用模型，确定用户问题需要调用的agent
             for chunk in await self.decide(
                 question, agent_prompt, agent_answers
             ):
                 response += chunk
                 if self.token_stream_callback:
                     self.token_stream_callback(chunk)
+                # 流式返回client端模型回答过程
                 yield chunk
-
+            # agent 抽取
             agents = self.extract_agents(response)
             if agents:
                 for agent in agents:
                     agent_response = ''
                     agent_card = agents_registry[agent['name']]
                     yield f'<Agent name="{agent["name"]}">\n'
+                    # agent 调用
                     async for chunk in self.send_message_to_an_agent(
                         agent_card, agent['prompt']
                     ):
                         agent_response += chunk
                         if self.token_stream_callback:
                             self.token_stream_callback(chunk)
+                        # 流式返回server端模型回答过程
                         yield chunk
                     yield '</Agent>\n'
                     match = re.search(
                         r'<Answer>(.*?)</Answer>', agent_response, re.DOTALL
                     )
+                    # agent不再调用工具查询内容
                     answer = match.group(1).strip() if match else agent_response
+                    # 记录已经调用过的agent
                     agent_answers.append(
                         {
                             'name': agent['name'],

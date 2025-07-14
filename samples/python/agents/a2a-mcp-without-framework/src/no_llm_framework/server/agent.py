@@ -1,6 +1,7 @@
 import asyncio
 import json
 import re
+import os
 from collections.abc import AsyncGenerator, Callable, Generator
 from pathlib import Path
 from typing import Literal
@@ -10,7 +11,9 @@ from jinja2 import Template
 from mcp.types import CallToolResult
 
 from no_llm_framework.server.constant import GOOGLE_API_KEY
-from no_llm_framework.server.mcp import call_mcp_tool, get_mcp_tool_prompt
+from no_llm_framework.server.mcp_tool_server import call_mcp_tool, get_mcp_tool_prompt
+
+from dashscope import Generation
 
 dir_path = Path(__file__).parent
 
@@ -33,12 +36,22 @@ def stream_llm(prompt: str) -> Generator[str, None]:
     Returns:
         Generator[str, None, None]: A generator of the LLM response.
     """
-    client = genai.Client(api_key=GOOGLE_API_KEY)
-    for chunk in client.models.generate_content_stream(
-        model='gemini-1.5-flash',
-        contents=prompt,
-    ):
-        yield chunk.text
+    # client = genai.Client(api_key=GOOGLE_API_KEY)
+    # for chunk in client.models.generate_content_stream(
+    #     model='gemini-1.5-flash',
+    #     contents=prompt,
+    # ):
+    #     yield chunk.text
+    messages = [
+        # {'role': 'system',
+        #  'content': prompt},
+        {'role': 'user', 'content': prompt}
+    ]
+    responses = Generation.call(
+        api_key=os.environ['AI_DASHSCOPE_API_KEY'], model=Generation.Models.qwen_plus, messages=messages,
+        result_format="message", stream=True, incremental_output=True)
+    for chunk in responses:
+        yield chunk.output.choices[0].message.content
 
 
 class Agent:
@@ -126,6 +139,7 @@ class Agent:
             dict: Streaming output, including intermediate steps and final result.
         """  # noqa: E501
         called_tools = []
+        # 多次调用工具执行，无工具可执行则结束
         for i in range(10):
             yield {
                 'is_task_complete': False,
@@ -133,6 +147,7 @@ class Agent:
                 'content': f'Step {i}',
             }
 
+            # 调用模型，生成可调用的工具
             response = ''
             for chunk in await self.decide(question, called_tools):
                 response += chunk
@@ -141,9 +156,11 @@ class Agent:
                     'require_user_input': False,
                     'content': chunk,
                 }
+            # 可调用工具抽取
             tools = self.extract_tools(response)
             if not tools:
                 break
+            # mcp工具调用
             results = await self.call_tool(tools)
 
             called_tools += [
@@ -155,6 +172,7 @@ class Agent:
                 }
                 for tool, result in zip(tools, results, strict=True)
             ]
+            # 历史调用过的工具排除prompt生成
             called_tools_history = called_tools_history_template.render(
                 called_tools=called_tools, question=question
             )

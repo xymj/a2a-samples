@@ -49,7 +49,7 @@ public class A2AServer {
 
             // Create new task with all required fields
             Task task = new Task(
-                params.id(),
+                params.id() == null ? request.id().toString() : params.id(),
                 contextId,
                 "task",  // kind is always "task"
                 initialStatus,

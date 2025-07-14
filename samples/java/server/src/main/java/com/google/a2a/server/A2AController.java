@@ -65,7 +65,7 @@ public class A2AController {
         }
 
         JSONRPCResponse response = switch (request.method()) {
-            case "tasks/send" -> server.handleTaskSend(request);
+            case "tasks/send", "message/send" -> server.handleTaskSend(request);
             case "tasks/get" -> server.handleTaskGet(request);
             case "tasks/cancel" -> server.handleTaskCancel(request);
             default -> {

@@ -75,11 +75,13 @@ def main(host: str, port: int):
     )
 
     task_store = InMemoryTaskStore()
+    # 创建请求处理handler
     request_handler = A2ARequestHandler(
         agent_executor=HelloWorldAgentExecutor(),
         task_store=task_store,
     )
 
+    # 创建starlette应用，构建路径路由到具体的处理方法
     server = A2AStarletteApplication(
         agent_card=agent_card, http_handler=request_handler
     )

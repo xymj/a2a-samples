@@ -35,11 +35,14 @@ class HelloWorldAgentExecutor(AgentExecutor):
             raise Exception('No message provided')
 
         if not task:
+            # 首次请求创建请求处理任务
             task = new_task(context.message)
+            # 任务进消费队列，下游接收到task even，把任务交给task manager管理(任务管理，任务对应交互消息管理)
             await event_queue.enqueue_event(task)
 
         async for event in self.agent.stream(query):
             if event['is_task_complete']:
+                # 最终执行完成任务结果事件入队列
                 await event_queue.enqueue_event(
                     TaskArtifactUpdateEvent(
                         append=False,
@@ -53,6 +56,7 @@ class HelloWorldAgentExecutor(AgentExecutor):
                         ),
                     )
                 )
+                # 任务执行完成状态事件入队列, 标识任务完成状态
                 await event_queue.enqueue_event(
                     TaskStatusUpdateEvent(
                         status=TaskStatus(state=TaskState.completed),
@@ -62,6 +66,7 @@ class HelloWorldAgentExecutor(AgentExecutor):
                     )
                 )
             elif event['require_user_input']:
+                # 任务需要用户输入状态事件入队列, 标识任务需要再次输入信息
                 await event_queue.enqueue_event(
                     TaskStatusUpdateEvent(
                         status=TaskStatus(
@@ -78,6 +83,7 @@ class HelloWorldAgentExecutor(AgentExecutor):
                     )
                 )
             else:
+                # 任务执行中状态事件入队列, 不仅标识任务执行中状态，同时会包含流式返回消息内容message
                 await event_queue.enqueue_event(
                     TaskStatusUpdateEvent(
                         append=True,
