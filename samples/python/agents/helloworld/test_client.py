@@ -140,3 +140,8 @@ if __name__ == '__main__':
     import asyncio
 
     asyncio.run(main())
+
+
+def test_async_main():
+    import asyncio
+    asyncio.run(main())

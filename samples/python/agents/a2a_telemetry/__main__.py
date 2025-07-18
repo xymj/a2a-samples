@@ -9,18 +9,26 @@ from a2a.server.request_handlers import DefaultRequestHandler
 from a2a.server.tasks import InMemoryTaskStore
 from a2a.types import AgentCapabilities, AgentCard, AgentSkill
 from agent_executor import QnAAgentExecutor
+# OpenTelemetry Python 库的核心作用是提供 分布式追踪、指标收集、日志记录 的标准化工具，并支持与多种后端（如 Jaeger、Prometheus）集成，帮助开发者观测、调试和优化分布式系统的性能
+# OpenTelemetry 相关模块用于分布式追踪：
+#   trace：管理追踪上下文。
 from opentelemetry import trace
+#   OTLPSpanExporter：将追踪数据导出到 OTLP 兼容的后端（如 Jaeger）。
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
     OTLPSpanExporter,
 )
+#   StarletteInstrumentor：为 Starlette 应用自动注入追踪逻辑。
 from opentelemetry.instrumentation.starlette import StarletteInstrumentor
 from opentelemetry.sdk.resources import Resource
+#   TracerProvider：生成追踪器（Tracer）。
 from opentelemetry.sdk.trace import TracerProvider
+# 添加 BatchSpanProcessor 实现异步批量导出追踪数据。
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
+from agent_executor_dashscope import QnADashScopeAgentExecutor
 
 logger = logging.getLogger(__name__)
-logging.basicConfig()
+logging.basicConfig(level=logging.DEBUG)
 
 
 @click.command()
@@ -28,8 +36,8 @@ logging.basicConfig()
 @click.option('--port', 'port', default=10020)
 def main(host: str, port: int):
     """A2A Telemetry Sample GRPC Server."""
-    if not os.getenv('GOOGLE_API_KEY'):
-        raise ValueError('GOOGLE_API_KEY is not set.')
+    # if not os.getenv('GOOGLE_API_KEY'):
+    #     raise ValueError('GOOGLE_API_KEY is not set.')
 
     skill = AgentSkill(
         id='question_answer',
@@ -42,7 +50,8 @@ def main(host: str, port: int):
         ],
     )
 
-    agent_executor = QnAAgentExecutor()
+    # agent_executor = QnAAgentExecutor()
+    agent_executor = QnADashScopeAgentExecutor()
     agent_card = AgentCard(
         name='Q&A Agent',
         description='A helpful assistant agent that can answer questions.',
