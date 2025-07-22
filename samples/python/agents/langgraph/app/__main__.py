@@ -29,6 +29,10 @@ logger = logging.getLogger(__name__)
 class MissingAPIKeyError(Exception):
     """Exception for missing API key."""
 
+os.environ['model_source'] = 'dashscope'
+os.environ['TOOL_LLM_URL'] = 'https://dashscope.aliyuncs.com/compatible-mode/v1'
+os.environ['TOOL_LLM_NAME'] = 'qwen-plus'
+os.environ['API_KEY'] = os.getenv("AI_DASHSCOPE_API_KEY")
 
 @click.command()
 @click.option('--host', 'host', default='localhost')

@@ -1,3 +1,4 @@
+import json
 import logging
 
 from typing import Any
@@ -125,7 +126,8 @@ async def main() -> None:
         )
 
         response = await client.send_message(request)
-        print(response.model_dump(mode='json', exclude_none=True))
+        print('question: how much is 10 USD in INR?')
+        print(json.dumps(response.model_dump(mode='json', exclude_none=True), indent=2))
         # --8<-- [end:send_message]
 
         # --8<-- [start:Multiturn]
@@ -147,7 +149,8 @@ async def main() -> None:
         )
 
         response = await client.send_message(request)
-        print(response.model_dump(mode='json', exclude_none=True))
+        print('question: How much is the exchange rate for 1 USD?')
+        print(json.dumps(response.model_dump(mode='json', exclude_none=True), indent=2))
 
         task_id = response.root.result.id
         contextId = response.root.result.contextId
@@ -167,7 +170,8 @@ async def main() -> None:
             params=MessageSendParams(**second_send_message_payload_multiturn),
         )
         second_response = await client.send_message(second_request)
-        print(second_response.model_dump(mode='json', exclude_none=True))
+        print('question: CAD')
+        print(json.dumps(second_response.model_dump(mode='json', exclude_none=True), indent=2))
         # --8<-- [end:Multiturn]
 
         # --8<-- [start:send_message_streaming]
@@ -179,7 +183,7 @@ async def main() -> None:
         stream_response = client.send_message_streaming(streaming_request)
 
         async for chunk in stream_response:
-            print(chunk.model_dump(mode='json', exclude_none=True))
+            print(json.dumps(chunk.model_dump(mode='json', exclude_none=True), indent=2))
         # --8<-- [end:send_message_streaming]
 
 

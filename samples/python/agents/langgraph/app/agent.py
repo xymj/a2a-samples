@@ -13,15 +13,14 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
 from pydantic import BaseModel
 
-
 memory = MemorySaver()
 
 
 @tool
 def get_exchange_rate(
-    currency_from: str = 'USD',
-    currency_to: str = 'EUR',
-    currency_date: str = 'latest',
+        currency_from: str = 'USD',
+        currency_to: str = 'EUR',
+        currency_date: str = 'latest',
 ):
     """Use this to get current exchange rate.
 
@@ -74,6 +73,13 @@ class CurrencyAgent:
         'Set response status to input_required if the user needs to provide more information to complete the request.'
         'Set response status to error if there is an error while processing the request.'
         'Set response status to completed if the request is complete.'
+        """You MUST respond in the following JSON format:
+            {
+                "status": "input_required | completed | error",
+                "message": "string"
+            }
+            Do not include any additional text outside this JSON structure.
+        """
     )
 
     def __init__(self):
@@ -95,6 +101,8 @@ class CurrencyAgent:
             checkpointer=memory,
             prompt=self.SYSTEM_INSTRUCTION,
             response_format=(self.FORMAT_INSTRUCTION, ResponseFormat),
+            # response_format={"type": "json_object",
+            #                  "schema": ResponseFormat.model_json_schema()}
         )
 
     async def stream(self, query, context_id) -> AsyncIterable[dict[str, Any]]:
@@ -104,9 +112,9 @@ class CurrencyAgent:
         for item in self.graph.stream(inputs, config, stream_mode='values'):
             message = item['messages'][-1]
             if (
-                isinstance(message, AIMessage)
-                and message.tool_calls
-                and len(message.tool_calls) > 0
+                    isinstance(message, AIMessage)
+                    and message.tool_calls
+                    and len(message.tool_calls) > 0
             ):
                 yield {
                     'is_task_complete': False,
@@ -126,7 +134,7 @@ class CurrencyAgent:
         current_state = self.graph.get_state(config)
         structured_response = current_state.values.get('structured_response')
         if structured_response and isinstance(
-            structured_response, ResponseFormat
+                structured_response, ResponseFormat
         ):
             if structured_response.status == 'input_required':
                 return {
