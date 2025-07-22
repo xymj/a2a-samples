@@ -24,6 +24,8 @@ load_dotenv()
 
 logging.basicConfig()
 
+os.environ['OPENROUTER_API_KEY'] = os.getenv('AI_DASHSCOPE_API_KEY')
+
 
 @click.command()
 @click.option('--host', 'host', default='localhost')

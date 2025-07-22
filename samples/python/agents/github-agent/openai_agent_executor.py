@@ -35,13 +35,13 @@ class OpenAIAgentExecutor(AgentExecutor):
         self.tools = tools
         self.client = AsyncOpenAI(
             api_key=api_key,
-            base_url='https://openrouter.ai/api/v1',
+            base_url='https://dashscope.aliyuncs.com/compatible-mode/v1',
             default_headers={
                 'HTTP-Referer': 'http://localhost:10007',
                 'X-Title': 'GitHub Agent',
             },
         )
-        self.model = 'anthropic/claude-3.5-sonnet'
+        self.model = 'qwen-plus'
         self.system_prompt = system_prompt
 
     async def _process_request(
@@ -106,10 +106,14 @@ class OpenAIAgentExecutor(AgentExecutor):
                         # Execute the function
                         if function_name in self.tools:
                             tool_instance = self.tools[function_name]
+                            logger.debug(
+                                f'Calling function instance: {tool_instance}')
                             # Get the method from the instance
                             if hasattr(tool_instance, function_name):
                                 method = getattr(tool_instance, function_name)
                                 result = method(**function_args)
+                                logger.debug(
+                                    f'Calling method: {method}, result: {result}')
                             else:
                                 result = {
                                     'error': f'Method {function_name} not found on tool instance'

@@ -3,6 +3,7 @@ import os
 from datetime import datetime, timedelta
 from typing import Any
 
+import pytz
 from github import Auth, Github
 from pydantic import BaseModel
 
@@ -118,10 +119,13 @@ class GitHubToolset:
                         error_message='Username is required when not using authentication token',
                     )
 
+            print(f"user: {user}")
             repos = []
-            cutoff_date = datetime.now() - timedelta(days=days)
+            cutoff_date = datetime.now(pytz.timezone('Asia/Shanghai')) - timedelta(days=days)
+            print(f"cutoff_date: {cutoff_date}")
 
             for repo in user.get_repos(sort='updated', direction='desc'):
+                print(f"repo: {repo}")
                 if len(repos) >= limit:
                     break
 
