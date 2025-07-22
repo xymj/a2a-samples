@@ -219,7 +219,7 @@ async def completeTask(
             message = event
 
     if message:
-        print(f'\n{message.model_dump_json(exclude_none=True)}')
+        print(f'\n message content: \n {message.model_dump_json(exclude_none=True)}')
         return True, contextId, taskId
     if taskResult:
         # Don't print the contents of a file.
@@ -235,7 +235,7 @@ async def completeTask(
             },
             exclude_none=True,
         )
-        print(f'\n{task_content}')
+        print(f'\n task content: \n {task_content}')
         ## if the result is that more input is required, loop again.
         state = TaskState(taskResult.status.state)
         if state.name == TaskState.input_required.name:
